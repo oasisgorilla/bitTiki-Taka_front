@@ -1,11 +1,18 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useMoralis, useWeb3Contract } from "react-moralis"
-import { bttAddresses, bttDexAbi } from "@/constants/btt-dex-constant"
+import {
+    bttAddresses,
+    bttDexAbi,
+    bttPool,
+    bttPoolToken,
+} from "@/constants/btt-dex-constant"
 import CreateModal from "@/components/CreateModal"
 
 const LiquidityPools = () => {
     const { chainId: chainIdHex, isWeb3Enabled, account } = useMoralis()
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [pools, setPools] = useState([])
+    const [selectedPool, setSelectedPool] = useState("")
     const chainId = parseInt(chainIdHex)
     const bttContractAddress =
         chainId in bttAddresses ? bttAddresses[chainId].bttSwap : null
@@ -15,6 +22,24 @@ const LiquidityPools = () => {
         contractAddress: bttContractAddress,
         functionName: "createPairs",
     })
+
+    const { runContractFunction: getPairs } = useWeb3Contract({
+        abi: bttDexAbi,
+        contractAddress: bttContractAddress,
+        functionName: "getPairs",
+    })
+
+    useEffect(() => {
+        if (isWeb3Enabled) {
+            const fetchPools = async () => {
+                const pairs = await getPairs()
+                if (pairs) {
+                    setPools(pairs)
+                }
+            }
+            fetchPools()
+        }
+    }, [isWeb3Enabled])
 
     const handleConfirmModal = async (
         token1,
@@ -56,11 +81,31 @@ const LiquidityPools = () => {
                 <div>
                     <p className="mb-4">환영합니다!, {account}!</p>
                     <button
-                        className="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600"
+                        className="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 mb-4"
                         onClick={(e) => setIsModalOpen(true)}
                     >
                         유동성 풀 생성
                     </button>
+                    <div className="mb-4">
+                        <label className="text-sm font-bold">
+                            생성된 풀 목록:
+                        </label>
+                        <select
+                            value={selectedPool}
+                            onChange={(e) => {
+                                setSelectedPool(e.target.value)
+                            }}
+                            className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+                        >
+                            {
+                                pools.map((pool)=>(
+                                    <option key={pool} value={pool}>
+                                        {pool}
+                                    </option>
+                                ))
+                            }
+                        </select>
+                    </div>
                     <CreateModal
                         isOpen={isModalOpen}
                         onClose={handleCloseModal}
