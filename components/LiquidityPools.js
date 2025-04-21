@@ -13,6 +13,8 @@ const LiquidityPools = () => {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [pools, setPools] = useState([])
     const [selectedPool, setSelectedPool] = useState("")
+    const [liquidityAmountToken1, setLiquidityAmountToken1] = useState("0")
+    const [liquidityAmountToken2, setLiquidityAmountToken2] = useState("0")
     const chainId = parseInt(chainIdHex)
     const bttContractAddress =
         chainId in bttAddresses ? bttAddresses[chainId].bttSwap : null
@@ -27,6 +29,21 @@ const LiquidityPools = () => {
         abi: bttDexAbi,
         contractAddress: bttContractAddress,
         functionName: "getPairs",
+    })
+
+    const { runContractFunction: addLiquidity } = useWeb3Contract({
+        abi: bttPool,
+        functionName: "addLiquidity",
+    })
+
+    const { runContractFunction: getToken1 } = useWeb3Contract({
+        abi: bttPool,
+        functionName: "token1",
+    })
+
+    const { runContractFunction: getToken2 } = useWeb3Contract({
+        abi: bttPool,
+        functionName: "token2",
     })
 
     useEffect(() => {
@@ -74,6 +91,25 @@ const LiquidityPools = () => {
         setIsModalOpen(false)
     }
 
+    const handleAddLiquidity = async () => {
+        try {
+            const token1Address = await getToken1({
+                params:{
+                    contractAddress:selectedPool
+                },
+            })
+            const token2Address = await getToken2({
+                params:{
+                    contractAddress:selectedPool
+                },
+            })
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    // const checkAllowance = (tokenAddress, owner, spender, amount)
+
     return (
         <div className="mt-8 p-8 bg-white rounded-lg shadow-md max-w-lg mx-auto">
             <h2 className="text-2xl font-bold mb-4">LiquidityPools</h2>
@@ -97,15 +133,47 @@ const LiquidityPools = () => {
                             }}
                             className="mt-1 p-2 border border-gray-300 rounded-md w-full"
                         >
-                            {
-                                pools.map((pool)=>(
-                                    <option key={pool} value={pool}>
-                                        {pool}
-                                    </option>
-                                ))
-                            }
+                            {pools.map((pool) => (
+                                <option key={pool} value={pool}>
+                                    {pool}
+                                </option>
+                            ))}
                         </select>
                     </div>
+                    <div className="mb-4">
+                        <label className="text-sm font-bold">
+                            Token1 Amount:
+                        </label>
+                        <input
+                            type="text"
+                            value={liquidityAmountToken1}
+                            onChange={(e) => {
+                                setLiquidityAmountToken1(e.target.value)
+                            }}
+                            className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="text-sm font-bold">
+                            Token2 Amount:
+                        </label>
+                        <input
+                            type="text"
+                            value={liquidityAmountToken2}
+                            onChange={(e) => {
+                                setLiquidityAmountToken2(e.target.value)
+                            }}
+                            className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+                        />
+                    </div>
+                    <button
+                        className="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 mb-4"
+                        onClick={(e) => {
+                            handleAddLiquidity()
+                        }}
+                    >
+                        유동성 추가
+                    </button>
                     <CreateModal
                         isOpen={isModalOpen}
                         onClose={handleCloseModal}
