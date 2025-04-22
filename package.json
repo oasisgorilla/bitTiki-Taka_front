@@ -9,6 +9,7 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@walletconnect/ethereum-provider": "^2.20.0",
         "@web3uikit/core": "^0.2.47",
         "@web3uikit/icons": "^0.2.46",
         "@web3uikit/web3": "^0.2.2",
