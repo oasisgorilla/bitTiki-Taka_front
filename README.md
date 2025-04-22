@@ -1,4 +1,10 @@
 # bitTiki-Taka frontend
+
+<img width="829" alt="image" src="https://github.com/user-attachments/assets/52a71b4d-36c9-4284-ac83-474f582eabec" />
+<img width="829" alt="image" src="https://github.com/user-attachments/assets/ce28cff5-1430-4eea-8187-4c47ff292f11" />
+<img width="811" alt="image" src="https://github.com/user-attachments/assets/f98c254a-72f3-4795-9a9a-f35b85aaef82" />
+
+
 ## 프로젝트 기획 의도
 DEX의 작동 원리를 이해하기 위한 토이 프로젝트
 
