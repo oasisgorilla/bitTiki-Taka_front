@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useMoralis, useWeb3Contract } from "react-moralis"
+import { ethers } from "ethers"
 import {
     bttAddresses,
     bttDexAbi,
@@ -44,6 +45,16 @@ const LiquidityPools = () => {
     const { runContractFunction: getToken2 } = useWeb3Contract({
         abi: bttPool,
         functionName: "token2",
+    })
+
+    const { runContractFunction: getAllowance } = useWeb3Contract({
+        abi: bttPoolToken,
+        functionName: "allowance",
+    })
+
+    const { runContractFunction: approve } = useWeb3Contract({
+        abi: bttPoolToken,
+        functionName: "approve",
     })
 
     useEffect(() => {
@@ -94,21 +105,120 @@ const LiquidityPools = () => {
     const handleAddLiquidity = async () => {
         try {
             const token1Address = await getToken1({
-                params:{
-                    contractAddress:selectedPool
+                params: {
+                    contractAddress: selectedPool,
                 },
             })
             const token2Address = await getToken2({
-                params:{
-                    contractAddress:selectedPool
+                params: {
+                    contractAddress: selectedPool,
                 },
             })
+            const isToken1Approved = await checkAllowance(
+                token1Address,
+                account,
+                selectedPool,
+                ethers.utils.parseEther(liquidityAmountToken1)
+            )
+            const isToken2Approved = await checkAllowance(
+                token2Address,
+                account,
+                selectedPool,
+                ethers.utils.parseEther(liquidityAmountToken2)
+            )
+            if (!isToken1Approved || !isToken2Approved) {
+                await requestApprovals(
+                    isToken1Approved,
+                    token1Address,
+                    isToken2Approved,
+                    token2Address,
+                    selectedPool,
+                    ethers.utils.parseEther(liquidityAmountToken1),
+                    ethers.utils.parseEther(liquidityAmountToken2)
+                )
+            } else {
+                await triggerLiquidity(
+                    ethers.utils.parseEther(liquidityAmountToken1),
+                    ethers.utils.parseEther(liquidityAmountToken2)
+                )
+            }
         } catch (error) {
             console.log(error)
         }
     }
 
-    // const checkAllowance = (tokenAddress, owner, spender, amount)
+    const checkAllowance = async (tokenAddress, owner, spender, amount) => {
+        console.log('1', tokenAddress, '2', owner, '3', spender, '4', amount)
+        const allowance = await getAllowance({
+            params: {
+                contractAddress: tokenAddress,
+                params: {
+                    owner: owner,
+                    spender: spender,
+                },
+            },
+        })
+        console.log(allowance)
+        if (allowance.gt(amount)) {
+            return true
+        }
+        return false
+    }
+
+    const requestApprovals = async (
+        isToken1Approved,
+        token1Address,
+        isToken2Approved,
+        token2Address,
+        spender,
+        amountToken1,
+        amountToken2
+    ) => {
+        try {
+            if (isToken1Approved) {
+                await approve({
+                    params: {
+                        contractAddress: token1Address,
+                        params: {
+                            spender: spender,
+                            value: amountToken1,
+                        },
+                    },
+                })
+            }
+            if (isToken2Approved) {
+                await approve({
+                    params: {
+                        contractAddress: token2Address,
+                        params: {
+                            spender: spender,
+                            value: amountToken2,
+                        },
+                    },
+                })
+            }
+            await triggerLiquidity(amountToken1, amountToken2)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const triggerLiquidity = async (amount1, amount2) => {
+        try {
+            await addLiquidity({
+                params: {
+                    contractAddress: selectedPool,
+                    params: {
+                        amount1: amount1,
+                        amount2: amount2,
+                    },
+                },
+            })
+            console.log("Add liquidity successfull")
+        } catch {
+            console.log(error)
+        }
+    }
 
     return (
         <div className="mt-8 p-8 bg-white rounded-lg shadow-md max-w-lg mx-auto">
