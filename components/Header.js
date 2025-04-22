@@ -1,9 +1,13 @@
 import { ConnectButton } from "@web3uikit/web3"
+import { useRouter } from "next/router"
 
 export default function Header() {
+    const router = useRouter()
     return (
         <nav className="p-5 border-b-2 flex flex-row">
-            <h1 className="py-2 px-8 font-bold text-3xl text-white">
+            <h1 className="py-2 px-8 font-bold text-3xl text-white" onClick={()=>{
+                router.push("/")
+            }}>
                 BitTiki-Taka
             </h1>
             <div className="ml-auto py-2 px-4">
