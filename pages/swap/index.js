@@ -1,6 +1,10 @@
+import Swap from '@/components/Swap'
+
 const SwapPage = () => {
     return(
-        <div></div>
+        <div>
+            <Swap />
+        </div>
     )
 }
 
