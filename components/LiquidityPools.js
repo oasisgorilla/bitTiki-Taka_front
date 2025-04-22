@@ -17,6 +17,7 @@ const LiquidityPools = () => {
     const [liquidityAmountToken1, setLiquidityAmountToken1] = useState("0")
     const [liquidityAmountToken2, setLiquidityAmountToken2] = useState("0")
     const [liquidityAmount, setLiquidityAmount] = useState("0")
+    const [liquidityToRemove, setLiquidityToRemove] = useState("0")
     const chainId = parseInt(chainIdHex)
     const bttContractAddress =
         chainId in bttAddresses ? bttAddresses[chainId].bttSwap : null
@@ -36,6 +37,11 @@ const LiquidityPools = () => {
     const { runContractFunction: addLiquidity } = useWeb3Contract({
         abi: bttPool,
         functionName: "addLiquidity",
+    })
+
+    const { runContractFunction: removeLiquidity } = useWeb3Contract({
+        abi: bttPool,
+        functionName: "removeLiquidity",
     })
 
     const { runContractFunction: getLiquidityToken } = useWeb3Contract({
@@ -83,24 +89,30 @@ const LiquidityPools = () => {
         }
     }, [isWeb3Enabled])
 
-    useEffect(()=> {
-        if(selectedPool){
+    useEffect(() => {
+        if (selectedPool) {
             const fetchLiquidityAmount = async () => {
-                const liquidityToken = await getLiquidityToken()
-                if(liquidityToken){
+                const liquidityToken = await getLiquidityToken({
+                    params:{
+                        contractAddress: selectedPool,
+                    },
+                })
+                if (liquidityToken) {
+                    console.log("Liquidity token : " + liquidityToken)
                     const balance = await getBalanceOf({
-                        params:{
-                            contractAddress:liquidityToken,
-                            params:{
-                                account:account
+                        params: {
+                            contractAddress: liquidityToken,
+                            params: {
+                                account: account,
                             },
                         },
                     })
-                    setLiquidityAmount(balance)
+                    setLiquidityAmount(ethers.utils.formatEther(balance))
                 }
             }
+            fetchLiquidityAmount()
         }
-    })
+    }, [selectedPool])
 
     const handleConfirmModal = async (
         token1,
@@ -181,7 +193,7 @@ const LiquidityPools = () => {
     }
 
     const checkAllowance = async (tokenAddress, owner, spender, amount) => {
-        console.log('1', tokenAddress, '2', owner, '3', spender, '4', amount)
+        console.log("1", tokenAddress, "2", owner, "3", spender, "4", amount)
         const allowance = await getAllowance({
             params: {
                 contractAddress: tokenAddress,
@@ -246,11 +258,30 @@ const LiquidityPools = () => {
                         amount2: amount2,
                     },
                 },
+                onError: (err) => {
+                    console.log(err)
+                },
+                onSuccess: (tx) => {
+                    console.log("Add liquidity successful")
+                },
             })
-            console.log("Add liquidity successfull")
         } catch {
             console.log(error)
         }
+    }
+
+    const handleRemoveLiquidity = async () => {
+        try {
+            await removeLiquidity({
+                params: {
+                    contractAddress: selectedPool,
+                    params: {
+                        amountOfLiquidity:
+                            ethers.utils.parseEther(liquidityToRemove),
+                    },
+                },
+            })
+        } catch (error) {}
     }
 
     return (
@@ -320,6 +351,29 @@ const LiquidityPools = () => {
                     <p className="text-sm font-bold">
                         현재 유동성 : {liquidityAmount}
                     </p>
+                    {liquidityAmount > 0 ? (
+                        <div>
+                            <div className="mb-4">
+                                <label className="text-sm font-bold">
+                                    회수할 유동성:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={liquidityToRemove}
+                                    onChange={(e) => {
+                                        setLiquidityToRemove(e.target.value)
+                                    }}
+                                    className="mt-1 p-2 border border-gray-300 rounded-md w-full"
+                                />
+                            </div>
+                            <button
+                                className="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 mb-4"
+                                onClick={handleRemoveLiquidity}
+                            >
+                                유동성 회수
+                            </button>
+                        </div>
+                    ) : null}
                     <CreateModal
                         isOpen={isModalOpen}
                         onClose={handleCloseModal}
