@@ -16,6 +16,7 @@ const LiquidityPools = () => {
     const [selectedPool, setSelectedPool] = useState("")
     const [liquidityAmountToken1, setLiquidityAmountToken1] = useState("0")
     const [liquidityAmountToken2, setLiquidityAmountToken2] = useState("0")
+    const [liquidityAmount, setLiquidityAmount] = useState("0")
     const chainId = parseInt(chainIdHex)
     const bttContractAddress =
         chainId in bttAddresses ? bttAddresses[chainId].bttSwap : null
@@ -35,6 +36,11 @@ const LiquidityPools = () => {
     const { runContractFunction: addLiquidity } = useWeb3Contract({
         abi: bttPool,
         functionName: "addLiquidity",
+    })
+
+    const { runContractFunction: getLiquidityToken } = useWeb3Contract({
+        abi: bttPool,
+        functionName: "liquidityToken",
     })
 
     const { runContractFunction: getToken1 } = useWeb3Contract({
@@ -57,17 +63,44 @@ const LiquidityPools = () => {
         functionName: "approve",
     })
 
+    const { runContractFunction: getBalanceOf } = useWeb3Contract({
+        abi: bttPoolToken,
+        functionName: "balanceOf",
+    })
+
     useEffect(() => {
         if (isWeb3Enabled) {
             const fetchPools = async () => {
                 const pairs = await getPairs()
                 if (pairs) {
                     setPools(pairs)
+                    if (pairs.length > 0) {
+                        setSelectedPool(pairs[0])
+                    }
                 }
             }
             fetchPools()
         }
     }, [isWeb3Enabled])
+
+    useEffect(()=> {
+        if(selectedPool){
+            const fetchLiquidityAmount = async () => {
+                const liquidityToken = await getLiquidityToken()
+                if(liquidityToken){
+                    const balance = await getBalanceOf({
+                        params:{
+                            contractAddress:liquidityToken,
+                            params:{
+                                account:account
+                            },
+                        },
+                    })
+                    setLiquidityAmount(balance)
+                }
+            }
+        }
+    })
 
     const handleConfirmModal = async (
         token1,
@@ -284,6 +317,9 @@ const LiquidityPools = () => {
                     >
                         유동성 추가
                     </button>
+                    <p className="text-sm font-bold">
+                        현재 유동성 : {liquidityAmount}
+                    </p>
                     <CreateModal
                         isOpen={isModalOpen}
                         onClose={handleCloseModal}
